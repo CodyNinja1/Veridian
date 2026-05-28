@@ -122,6 +122,7 @@ namespace Veridian
 
     enum class VSettingType
     {
+        VUnknown = 0,
         VInt,
         VUInt,
         VFloat,
@@ -130,7 +131,6 @@ namespace Veridian
         VVec3,
         VVec4,
         VBool,
-        VUnknown
     };
 
     union VValue
@@ -276,6 +276,8 @@ namespace Veridian
 
             return *this;
         }
+
+        bool Registered = false;
 
         VSettingType Type = VSettingType::VUnknown;
 
@@ -426,60 +428,67 @@ namespace Veridian
             }
         }
 
-        private:
+    private:
         void SetFromString()
         {
             VValue* NewValue = new VValue();
             Value = NewValue;
 
-            switch (Type)
+            try
             {
-            case VSettingType::VInt:
-            {
-                Value->Int = std::stoll(SettingStr);
-                break;
+                switch (Type)
+                {
+                case VSettingType::VInt:
+                {
+                    Value->Int = std::stoll(SettingStr);
+                    break;
+                }
+                case VSettingType::VUInt:
+                {
+                    Value->UInt = std::stoull(SettingStr);
+                    break;
+                }
+                case VSettingType::VFloat:
+                {
+                    Value->Float = std::stof(SettingStr);
+                    break;
+                }
+                case VSettingType::VString:
+                {
+                    Value->String = SettingStr;
+                    break;
+                }
+                case VSettingType::VVec2:
+                {
+                    Value->Vec2 = VVec2(SettingStr);
+                    break;
+                }
+                case VSettingType::VVec3:
+                {
+                    Value->Vec3 = VVec3(SettingStr);
+                    break;
+                }
+                case VSettingType::VVec4:
+                {
+                    Value->Vec4 = VVec4(SettingStr);
+                    break;
+                }
+                case VSettingType::VBool:
+                {
+                    Value->Bool = SettingStr == "true" ? true : false;
+                    break;
+                }
+                default:
+                {
+                    delete Value;
+                    Value = nullptr;
+                    break;
+                }
+                }
             }
-            case VSettingType::VUInt:
+            catch (std::exception& e)
             {
-                Value->UInt = std::stoull(SettingStr);
-                break;
-            }
-            case VSettingType::VFloat:
-            {
-                Value->Float = std::stof(SettingStr);
-                break;
-            }
-            case VSettingType::VString:
-            {
-                Value->String = SettingStr;
-                break;
-            }
-            case VSettingType::VVec2:
-            {
-                Value->Vec2 = VVec2(SettingStr);
-                break;
-            }
-            case VSettingType::VVec3:
-            {
-                Value->Vec3 = VVec3(SettingStr);
-                break;
-            }
-            case VSettingType::VVec4:
-            {
-                Value->Vec4 = VVec4(SettingStr);
-                break;
-            }
-            case VSettingType::VBool:
-            {
-                Value->Bool = SettingStr == "true" ? true : false;
-                break;
-            }
-            default:
-            {
-                delete Value;
-                Value = nullptr;
-                break;
-            }
+                // ...
             }
         }
     };
@@ -499,8 +508,6 @@ namespace Veridian
         template <typename T>
         VSetting& Register(std::string Section, std::string Name, std::string FacingName, VSettingType Type, T* Value)
         {
-            VSetting NewSetting;
-
             if (this->Settings.contains(Section))
             {
                 if (this->Settings[Section].contains(Name))
@@ -513,14 +520,12 @@ namespace Veridian
                 }
             }
 
-            this->Settings[Section][Name] = NewSetting;
-
             VSetting& NewSettingRef = this->Settings[Section][Name];
 
             NewSettingRef.Name = Name;
             NewSettingRef.FacingName = FacingName;
             NewSettingRef.Section = Section;
-            NewSettingRef.Type = Type;
+            NewSettingRef.Registered = true;
             NewSettingRef.Value = reinterpret_cast<VValue*>(Value);
 
             return this->Settings[Section][Name];

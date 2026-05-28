@@ -183,24 +183,39 @@ namespace Veridian
     {
         for (auto& SetPair : VastVeridian->Settings.at(Section))
         {
-            RenderSetting(SetPair.second);
+            if (SetPair.second.Registered) RenderSetting(SetPair.second);
         }
     }
 
     void RenderAll()
     {
+        std::map<std::string, size_t> RegisteredSettingsPerSection = {};
+
         for (auto& SecPair : VastVeridian->Settings)
         {
-            if (ImGui::BeginTabBar("##VeridianSettingsTabBar"))
+            for (auto& SetPair : SecPair.second)
             {
+                if (SetPair.second.Registered)
+                {
+                    RegisteredSettingsPerSection[SecPair.first]++;
+                }
+            }
+        }
+
+        if (ImGui::BeginTabBar("##VeridianSettingsTabBar"))
+        {
+            for (auto& SecPair : VastVeridian->Settings)
+            {
+                if (RegisteredSettingsPerSection[SecPair.first] == 0) continue;
+
                 if (ImGui::BeginTabItem(SecPair.first.c_str()))
                 {
                     RenderSection(SecPair.first);
                     ImGui::EndTabItem();
                 }
-
-                ImGui::EndTabBar();
             }
+
+            ImGui::EndTabBar();
         }
     }
 }
